@@ -56,6 +56,13 @@ struct _GsApplication {
 
 G_DEFINE_TYPE (GsApplication, gs_application, GTK_TYPE_APPLICATION);
 
+enum {
+	INSTALL_RESOURCES_DONE,
+	LAST_SIGNAL
+};
+
+static guint signals[LAST_SIGNAL];
+
 typedef struct {
 	GsApplication *app;
 	GSimpleAction *action;
@@ -798,9 +805,10 @@ install_resources_activated (GSimpleAction *action,
 	GdkDisplay *display;
 	const gchar *mode;
 	const gchar *startup_id;
+	const gchar *ident;
 	g_autofree gchar **resources = NULL;
 
-	g_variant_get (parameter, "(&s^a&s&s)", &mode, &resources, &startup_id);
+	g_variant_get (parameter, "(&s^a&s&s&s)", &mode, &resources, &startup_id, &ident);
 
 	display = gdk_display_get_default ();
 #ifdef GDK_WINDOWING_X11
@@ -821,7 +829,7 @@ install_resources_activated (GSimpleAction *action,
 	gs_application_present_window (app, startup_id);
 
 	gs_shell_reset_state (app->shell);
-	gs_shell_show_extras_search (app->shell, mode, resources);
+	gs_shell_show_extras_search (app->shell, mode, resources, ident);
 }
 
 static GActionEntry actions[] = {
@@ -846,7 +854,7 @@ static GActionEntry actions_after_loading[] = {
 	{ "details-url", details_url_activated, "(s)", NULL, NULL },
 	{ "install", install_activated, "(su)", NULL, NULL },
 	{ "filename", filename_activated, "(s)", NULL, NULL },
-	{ "install-resources", install_resources_activated, "(sass)", NULL, NULL },
+	{ "install-resources", install_resources_activated, "(sasss)", NULL, NULL },
 	{ "nop", NULL, NULL, NULL }
 };
 
@@ -1137,6 +1145,16 @@ gs_application_class_init (GsApplicationClass *class)
 	G_APPLICATION_CLASS (class)->open = gs_application_open;
 	G_APPLICATION_CLASS (class)->dbus_register = gs_application_dbus_register;
 	G_APPLICATION_CLASS (class)->dbus_unregister = gs_application_dbus_unregister;
+
+	signals[INSTALL_RESOURCES_DONE] = g_signal_new (
+		"install-resources-done",
+		G_TYPE_FROM_CLASS (class),
+		G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE,
+		0,
+		NULL, NULL,
+		NULL,
+		G_TYPE_NONE, 2,
+		G_TYPE_STRING, G_TYPE_ERROR);
 }
 
 GsApplication *
@@ -1147,4 +1165,12 @@ gs_application_new (void)
 			     "flags", G_APPLICATION_HANDLES_OPEN,
 			     "inactivity-timeout", 12000,
 			     NULL);
+}
+
+void
+gs_application_emit_install_resources_done (GsApplication *application,
+					    const gchar *ident,
+					    const GError *op_error)
+{
+	g_signal_emit (application, signals[INSTALL_RESOURCES_DONE], 0, ident, op_error, NULL);
 }
