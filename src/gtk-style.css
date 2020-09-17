@@ -327,8 +327,8 @@
 
 .reviewbar {
 	background-image: none;
-	background-color: #babdb6;
-	color: #555753;
+	background-color: @unfocused_insensitive_color;
+	color: @insensitive_fg_color;
 }
 
 .error-label {
@@ -401,7 +401,7 @@ flowboxchild {
 }
 .star-disabled,
 .star-disabled:disabled {
-	color: shade(@theme_bg_color, 0.8);
+	color: @unfocused_insensitive_color;
 }
 
 .counter-label {
