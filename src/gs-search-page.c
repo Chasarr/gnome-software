@@ -315,10 +315,13 @@ gs_search_page_get_text (GsSearchPage *self)
 void
 gs_search_page_set_text (GsSearchPage *self, const gchar *value)
 {
-	if (value == self->value)
+	if (value == self->value ||
+	    g_strcmp0 (value, self->value) == 0) {
+		/* Force search reload when there's an application to be shown */
+		if (self->appid_to_show)
+			gs_search_page_load (self);
 		return;
-	if (g_strcmp0 (value, self->value) == 0)
-		return;
+	}
 
 	g_free (self->value);
 	self->value = g_strdup (value);
